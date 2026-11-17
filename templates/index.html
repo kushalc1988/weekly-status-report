@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Weekly Status Report</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --navy: #183153;
+      --blue: #2864a5;
+      --pale: #f3f6fa;
+      --border: #d7dee8;
+      --muted: #596579;
+      --green: #237a52;
+      --orange: #a45b08;
+      --red: #a33a3a;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--pale);
+      color: #202b3c;
+      font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+    header {
+      padding: 24px max(20px, calc((100% - 1180px) / 2));
+      background: var(--navy);
+      color: white;
+    }
+    header h1 { margin: 0 0 4px; font-size: 1.7rem; }
+    header p { margin: 0; color: #dbe6f5; }
+    main { max-width: 1180px; margin: 24px auto; padding: 0 18px 40px; }
+    section, .card {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 18px;
+      box-shadow: 0 2px 6px #1831530a;
+    }
+    h2 { margin: 0 0 14px; color: var(--navy); font-size: 1.2rem; }
+    h3 { margin: 18px 0 10px; color: var(--navy); font-size: 1rem; }
+    .week-picker, .actions, .inline-form {
+      display: flex; align-items: end; gap: 12px; flex-wrap: wrap;
+    }
+    .week-picker { justify-content: space-between; }
+    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+    .field { display: flex; flex-direction: column; gap: 5px; }
+    .field.full { grid-column: 1 / -1; }
+    label { color: #34445a; font-weight: 600; }
+    input, select, textarea {
+      width: 100%; padding: 9px 10px; border: 1px solid #bdc8d7;
+      border-radius: 6px; background: white; color: #202b3c; font: inherit;
+    }
+    textarea { min-height: 84px; resize: vertical; }
+    button, .button {
+      display: inline-block; border: 0; border-radius: 6px; padding: 10px 15px;
+      background: var(--blue); color: white; font: inherit; font-weight: 650;
+      text-decoration: none; cursor: pointer;
+    }
+    button:hover, .button:hover { background: #1d4e84; }
+    .button.secondary { background: #52657d; }
+    .button.danger, button.danger { background: #a33a3a; padding: 6px 10px; }
+    .range { color: var(--muted); font-weight: 500; }
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 16px; }
+    .stat { border-radius: 8px; background: #edf3fa; padding: 14px; }
+    .stat strong { display: block; color: var(--navy); font-size: 1.4rem; }
+    .charts { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    .bar-row { display: grid; grid-template-columns: 110px 1fr 34px; gap: 8px; align-items: center; margin: 10px 0; }
+    .bar-label { color: var(--muted); }
+    .bar-track { height: 14px; overflow: hidden; border-radius: 10px; background: #e7edf4; }
+    .bar { height: 100%; min-width: 0; border-radius: 10px; background: #4384c2; }
+    .bar.status-Completed { background: var(--green); }
+    .bar.status-Blocked { background: var(--red); }
+    .bar.status-Pending { background: var(--orange); }
+    .bar.status-In-Progress { background: #4384c2; }
+    .bar-value { text-align: right; font-weight: 650; }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; min-width: 760px; }
+    th, td { padding: 10px 9px; border-bottom: 1px solid #e2e7ee; text-align: left; vertical-align: top; }
+    th { color: var(--navy); background: #f7f9fc; }
+    .muted, .empty { color: var(--muted); }
+    .empty { padding: 18px 0; }
+    .status { font-weight: 650; }
+    .status.Completed { color: var(--green); }
+    .status.Blocked { color: var(--red); }
+    .status.Pending { color: var(--orange); }
+    .report-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .report-item { padding: 12px; border: 1px solid var(--border); border-radius: 7px; }
+    .report-item h3 { margin: 0 0 6px; }
+    .report-item p { margin: 0; white-space: pre-wrap; }
+    .print-only { display: none; }
+    @media (max-width: 700px) {
+      .grid, .charts, .report-grid { grid-template-columns: 1fr; }
+      .stats { grid-template-columns: 1fr; }
+      .bar-row { grid-template-columns: 90px 1fr 28px; }
+    }
+    @media print {
+      body { background: white; }
+      header { padding: 12px 0; background: white; color: black; }
+      header p { color: black; }
+      main { max-width: none; margin: 0; padding: 0; }
+      section, .card { box-shadow: none; break-inside: avoid; }
+      .no-print, form, button, .button { display: none !important; }
+      .print-only { display: block; }
+    }
+  </style>
+</head>
+<body>
+<header>
+  <h1>Weekly Status Report</h1>
+  <p>Track ServiceNow support work, other contributions, outcomes, and follow-ups.</p>
+</header>
+
+<main>
+  <section class="no-print">
+    <form class="week-picker" method="get" action="/">
+      <div>
+        <label for="week">Select reporting week</label><br>
+        <input id="week" name="week" type="week" value="{{ week_value }}">
+      </div>
+      <button type="submit">View Week</button>
+      <span class="range">{{ monday.strftime("%B %d, %Y") }} – {{ sunday.strftime("%B %d, %Y") }}</span>
+    </form>
+  </section>
+
+  <section>
+    <h2>Weekly Overview</h2>
+    <div class="stats">
+      <div class="stat"><strong>{{ items|length }}</strong>Work items</div>
+      <div class="stat"><strong>{{ "%.1f"|format(total_hours) }}</strong>Hours logged</div>
+      <div class="stat"><strong>{{ status_counts["Completed"] }}</strong>Completed</div>
+    </div>
+
+    <div class="charts">
+      <div>
+        <h3>Work by category</h3>
+        {% set max_category = [category_counts.values()|max, 1]|max %}
+        {% for category, count in category_counts.items() %}
+          <div class="bar-row">
+            <span class="bar-label">{{ category }}</span>
+            <div class="bar-track"><div class="bar" style="width: {{ (count / max_category * 100)|round|int }}%"></div></div>
+            <span class="bar-value">{{ count }}</span>
+          </div>
+        {% endfor %}
+      </div>
+      <div>
+        <h3>Work by status</h3>
+        {% set max_status = [status_counts.values()|max, 1]|max %}
+        {% for status, count in status_counts.items() %}
+          <div class="bar-row">
+            <span class="bar-label">{{ status }}</span>
+            <div class="bar-track"><div class="bar status-{{ status|replace(' ', '-') }}" style="width: {{ (count / max_status * 100)|round|int }}%"></div></div>
+            <span class="bar-value">{{ count }}</span>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+
+  <section class="no-print">
+    <h2>Add Work Item</h2>
+    <form method="post" action="{{ url_for('create_entry') }}">
+      <div class="grid">
+        <div class="field">
+          <label for="work_date">Work date *</label>
+          <input id="work_date" name="work_date" type="date" value="{{ monday.isoformat() }}" required>
+        </div>
+        <div class="field">
+          <label for="category">Category *</label>
+          <select id="category" name="category" required>
+            {% for category in categories %}<option>{{ category }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label for="reference">ServiceNow number / reference</label>
+          <input id="reference" name="reference" placeholder="e.g. INC0012345, RITM0012345">
+        </div>
+        <div class="field">
+          <label for="title">Short description / work title *</label>
+          <input id="title" name="title" required>
+        </div>
+        <div class="field">
+          <label for="status">Status *</label>
+          <select id="status" name="status" required>
+            {% for status in statuses %}<option>{{ status }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label for="priority">Priority</label>
+          <select id="priority" name="priority">
+            <option value="">Not specified</option>
+            <option>Critical</option><option>High</option><option>Medium</option><option>Low</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="hours">Hours spent</label>
+          <input id="hours" name="hours" type="number" min="0" step="0.25" value="0">
+        </div>
+        <div class="field">
+          <label for="team">Team / assignment group</label>
+          <input id="team" name="team" placeholder="Team or group">
+        </div>
+        <div class="field full">
+          <label for="details">Work performed / notes</label>
+          <textarea id="details" name="details" placeholder="Actions taken, result, and relevant context"></textarea>
+        </div>
+      </div>
+      <p><button type="submit">Create Work Item</button></p>
+    </form>
+  </section>
+
+  <section>
+    <h2>Work Items</h2>
+    {% if items %}
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th><th>Type / Reference</th><th>Title and details</th>
+              <th>Status</th><th>Priority</th><th>Hours</th><th>Team</th><th class="no-print">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+          {% for item in items %}
+            <tr>
+              <td>{{ item["work_date"] }}</td>
+              <td>{{ item["category"] }}{% if item["reference"] %}<br><span class="muted">{{ item["reference"] }}</span>{% endif %}</td>
+              <td><strong>{{ item["title"] }}</strong>{% if item["details"] %}<br><span class="muted">{{ item["details"] }}</span>{% endif %}</td>
+              <td class="status {{ item['status'] }}">{{ item["status"] }}</td>
+              <td>{{ item["priority"] or "—" }}</td>
+              <td>{{ "%.2f"|format(item["hours"]) }}</td>
+              <td>{{ item["team"] or "—" }}</td>
+              <td class="no-print">
+                <form method="post" action="{{ url_for('delete_entry', item_id=item['id']) }}" onsubmit="return confirm('Delete this work item?')">
+                  <button class="danger" type="submit">Delete</button>
+                </form>
+              </td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="empty">No work items are recorded for this week yet.</p>
+    {% endif %}
+  </section>
+
+  <section id="weekly-report">
+    <h2>Weekly Outcomes and Planning</h2>
+    <p class="muted">Capture achievements, blockers, actions, risks, cross-team follow-ups, and deployment planning for this week.</p>
+    <form class="no-print" method="post" action="{{ url_for('save_report') }}">
+      <input type="hidden" name="week" value="{{ week_value }}">
+      <div class="grid">
+        <div class="field">
+          <label for="achievements">What was achieved this week?</label>
+          <textarea id="achievements" name="achievements">{{ notes["achievements"] if notes else "" }}</textarea>
+        </div>
+        <div class="field">
+          <label for="not_achieved">What was not achieved, and why?</label>
+          <textarea id="not_achieved" name="not_achieved">{{ notes["not_achieved"] if notes else "" }}</textarea>
+        </div>
+        <div class="field">
+          <label for="measures">What measures/actions are needed to achieve it?</label>
+          <textarea id="measures" name="measures">{{ notes["measures"] if notes else "" }}</textarea>
+        </div>
+        <div class="field">
+          <label for="risks">Risks, dependencies, or issues</label>
+          <textarea id="risks" name="risks">{{ notes["risks"] if notes else "" }}</textarea>
+        </div>
+        <div class="field">
+          <label for="followups">Pending follow-ups with other teams</label>
+          <textarea id="followups" name="followups">{{ notes["followups"] if notes else "" }}</textarea>
+        </div>
+        <div class="field">
+          <label for="deployment_plan">Production deployment plan / readiness</label>
+          <textarea id="deployment_plan" name="deployment_plan" placeholder="Planned date, change/reference, approvals, validation, rollback, and communications">{{ notes["deployment_plan"] if notes else "" }}</textarea>
+        </div>
+      </div>
+      <p class="actions">
+        <button type="submit">Save Weekly Report</button>
+        <button class="secondary" type="button" onclick="window.print()">Print / Save as PDF</button>
+      </p>
+    </form>
+
+    <div class="print-only">
+      <p><strong>Reporting week:</strong> {{ monday.strftime("%B %d, %Y") }} – {{ sunday.strftime("%B %d, %Y") }}</p>
+    </div>
+    <div class="report-grid">
+      <div class="report-item"><h3>Achievements</h3><p>{{ notes["achievements"] if notes and notes["achievements"] else "Not provided." }}</p></div>
+      <div class="report-item"><h3>Not achieved / why</h3><p>{{ notes["not_achieved"] if notes and notes["not_achieved"] else "Not provided." }}</p></div>
+      <div class="report-item"><h3>Measures to move forward</h3><p>{{ notes["measures"] if notes and notes["measures"] else "Not provided." }}</p></div>
+      <div class="report-item"><h3>Risks and dependencies</h3><p>{{ notes["risks"] if notes and notes["risks"] else "Not provided." }}</p></div>
+      <div class="report-item"><h3>Pending team follow-ups</h3><p>{{ notes["followups"] if notes and notes["followups"] else "Not provided." }}</p></div>
+      <div class="report-item"><h3>Production deployment planning</h3><p>{{ notes["deployment_plan"] if notes and notes["deployment_plan"] else "Not provided." }}</p></div>
+    </div>
+  </section>
+</main>
+</body>
+</html>

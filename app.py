@@ -1,8 +1,10 @@
 from datetime import date, timedelta
+from io import StringIO
 from pathlib import Path
+import csv
 import sqlite3
 
-from flask import Flask, abort, redirect, render_template, request, url_for
+from flask import Flask, Response, abort, redirect, render_template, request, url_for
 
 BASE_DIR = Path(__file__).resolve().parent
 DATABASE = BASE_DIR / "weekly_status.db"
@@ -65,27 +67,35 @@ def get_week_dates(week_value):
 
 @app.get("/")
 def index():
-    monday, sunday, week_value = get_week_dates(
-        request.args.get("week", date.today().strftime("%G-W%V"))
-    )
+    selected_week = request.args.get("week", date.today().strftime("%G-W%V"))
+    category_filter = request.args.get("category", "All")
+    status_filter = request.args.get("status", "All")
+    monday, sunday, week_value = get_week_dates(selected_week)
+
+    categories = ["Incident", "RITM", "Task", "Other"]
+    statuses = ["Completed", "In Progress", "Blocked", "Pending"]
 
     with get_db() as db:
-        items = db.execute(
-            """
+        base_query = """
             SELECT * FROM work_items
             WHERE work_date BETWEEN ? AND ?
-            ORDER BY work_date DESC, id DESC
-            """,
-            (monday.isoformat(), sunday.isoformat()),
-        ).fetchall()
+        """
+        params = [monday.isoformat(), sunday.isoformat()]
 
+        if category_filter != "All":
+            base_query += " AND category = ? "
+            params.append(category_filter)
+        if status_filter != "All":
+            base_query += " AND status = ? "
+            params.append(status_filter)
+
+        base_query += " ORDER BY work_date DESC, id DESC"
+
+        items = db.execute(base_query, params).fetchall()
         notes = db.execute(
             "SELECT * FROM weekly_notes WHERE week_start = ?",
             (monday.isoformat(),),
         ).fetchone()
-
-    categories = ["Incident", "RITM", "Task", "Other"]
-    statuses = ["Completed", "In Progress", "Blocked", "Pending"]
 
     category_counts = {
         category: sum(1 for item in items if item["category"] == category)
@@ -108,6 +118,66 @@ def index():
         category_counts=category_counts,
         status_counts=status_counts,
         total_hours=sum(item["hours"] for item in items),
+        category_filter=category_filter,
+        status_filter=status_filter,
+    )
+
+
+@app.get("/export/csv")
+def export_csv():
+    selected_week = request.args.get("week", date.today().strftime("%G-W%V"))
+    category_filter = request.args.get("category", "All")
+    status_filter = request.args.get("status", "All")
+    monday, sunday, week_value = get_week_dates(selected_week)
+
+    with get_db() as db:
+        query = "SELECT * FROM work_items WHERE work_date BETWEEN ? AND ?"
+        params = [monday.isoformat(), sunday.isoformat()]
+
+        if category_filter != "All":
+            query += " AND category = ?"
+            params.append(category_filter)
+        if status_filter != "All":
+            query += " AND status = ?"
+            params.append(status_filter)
+
+        query += " ORDER BY work_date DESC, id DESC"
+        items = db.execute(query, params).fetchall()
+
+    output = StringIO()
+    writer = csv.writer(output)
+    writer.writerow([
+        "Date",
+        "Category",
+        "Reference",
+        "Title",
+        "Details",
+        "Status",
+        "Priority",
+        "Hours",
+        "Team",
+        "Created At",
+    ])
+    for item in items:
+        writer.writerow([
+            item["work_date"],
+            item["category"],
+            item["reference"],
+            item["title"],
+            item["details"],
+            item["status"],
+            item["priority"],
+            item["hours"],
+            item["team"],
+            item["created_at"],
+        ])
+
+    return Response(
+        output.getvalue(),
+        mimetype="text/csv",
+        headers={
+            "Content-Disposition": f"attachment; filename=weekly_status_{week_value}.csv",
+        },
     )
 
 

@@ -63,7 +63,7 @@
     .button.secondary { background: #52657d; }
     .button.danger, button.danger { background: #a33a3a; padding: 6px 10px; }
     .range { color: var(--muted); font-weight: 500; }
-    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 16px; }
+    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 16px; }
     .stat { border-radius: 8px; background: #edf3fa; padding: 14px; }
     .stat strong { display: block; color: var(--navy); font-size: 1.4rem; }
     .charts { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
@@ -91,9 +91,10 @@
     .report-item h3 { margin: 0 0 6px; }
     .report-item p { margin: 0; white-space: pre-wrap; }
     .print-only { display: none; }
+    .filter-form { display: flex; align-items: end; gap: 12px; flex-wrap: wrap; margin: 16px 0; }
+    .filter-form .field { min-width: 180px; }
     @media (max-width: 700px) {
-      .grid, .charts, .report-grid { grid-template-columns: 1fr; }
-      .stats { grid-template-columns: 1fr; }
+      .grid, .charts, .report-grid, .stats { grid-template-columns: 1fr; }
       .bar-row { grid-template-columns: 90px 1fr 28px; }
     }
     @media print {
@@ -123,14 +124,39 @@
       <button type="submit">View Week</button>
       <span class="range">{{ monday.strftime("%B %d, %Y") }} – {{ sunday.strftime("%B %d, %Y") }}</span>
     </form>
+
+    <form class="filter-form" method="get" action="/">
+      <input type="hidden" name="week" value="{{ week_value }}">
+      <div class="field">
+        <label for="category_filter">Category</label>
+        <select id="category_filter" name="category">
+          <option value="All" {% if category_filter == 'All' %}selected{% endif %}>All</option>
+          {% for category in categories %}
+            <option value="{{ category }}" {% if category_filter == category %}selected{% endif %}>{{ category }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label for="status_filter">Status</label>
+        <select id="status_filter" name="status">
+          <option value="All" {% if status_filter == 'All' %}selected{% endif %}>All</option>
+          {% for status in statuses %}
+            <option value="{{ status }}" {% if status_filter == status %}selected{% endif %}>{{ status }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <button type="submit">Apply Filters</button>
+      <a class="button secondary" href="{{ url_for('export_csv', week=week_value, category=category_filter, status=status_filter) }}">Export CSV</a>
+    </form>
   </section>
 
   <section>
     <h2>Weekly Overview</h2>
     <div class="stats">
-      <div class="stat"><strong>{{ items|length }}</strong>Work items</div>
+      <div class="stat"><strong>{{ items|length }}</strong>Filtered work items</div>
       <div class="stat"><strong>{{ "%.1f"|format(total_hours) }}</strong>Hours logged</div>
       <div class="stat"><strong>{{ status_counts["Completed"] }}</strong>Completed</div>
+      <div class="stat"><strong>{{ category_counts["Incident"] + category_counts["RITM"] }}</strong>ServiceNow items</div>
     </div>
 
     <div class="charts">
@@ -243,7 +269,7 @@
         </table>
       </div>
     {% else %}
-      <p class="empty">No work items are recorded for this week yet.</p>
+      <p class="empty">No work items match the selected filters for this week.</p>
     {% endif %}
   </section>
 

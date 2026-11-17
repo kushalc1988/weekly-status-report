@@ -1,0 +1,15 @@
+# Python bytecode
+__pycache__/
+*.py[cod]
+
+# Virtual environment
+.venv/
+venv/
+
+# Local app data
+weekly_status.db
+
+# OS/editor files
+.DS_Store
+.idea/
+.vscode/
